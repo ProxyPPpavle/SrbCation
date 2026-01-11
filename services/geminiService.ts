@@ -3,11 +3,21 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Caption } from "../types.ts";
 
 export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
-  const apiKey = process.env.API_KEY;
+  // Sigurniji način pristupa environment varijabli u browseru
+  let apiKey = "";
+  
+  try {
+    // @ts-ignore
+    apiKey = process.env.API_KEY;
+  } catch (e) {
+    console.error("Greška pri čitanju process.env:", e);
+  }
+
+  // Debug poruka u konzoli (vidljiva samo tebi u F12)
+  console.log("Provera API ključa...", apiKey ? "Ključ je detektovan." : "Ključ NIJE detektovan.");
 
   if (!apiKey || apiKey === "undefined") {
-    console.error("API_KEY is missing in process.env");
-    throw new Error("API ključ nije detektovan. Proveri Environment Variables na hostingu.");
+    throw new Error("API ključ nije detektovan. OBAVEZNO uradi 'Redeploy' na Vercelu nakon dodavanja Environment varijable!");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -28,7 +38,6 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
     Za svaki segment odredi precizno vreme početka (start) i kraja (end) u sekundama.
     Vrati rezultat ISKLJUČIVO kao JSON niz objekata sa poljima "text", "start" i "end".
     Koristi isključivo srpska slova: č, ć, š, ž, đ.
-    Primer: [{"text": "Zdravo, ovo je test", "start": 0.5, "end": 2.5}]
   `;
 
   try {
@@ -65,7 +74,7 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
     });
 
     if (!response.text) {
-      throw new Error("Model nije vratio odgovor.");
+      throw new Error("Model nije vratio tekst. Pokušaj ponovo.");
     }
 
     const rawResult = JSON.parse(response.text.trim());
@@ -76,13 +85,11 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
   } catch (error: any) {
     console.error("Detaljna AI greška:", error);
     
-    let userMessage = "Problem sa AI transkripcijom.";
+    let userMessage = "Greška u AI obradi.";
     if (error.message?.includes("API key")) {
-      userMessage = "API ključ nije validan ili nema dozvole za Gemini 3.";
+      userMessage = "API ključ nije validan. Proveri da li je 'Generative Language API' omogućen u Google Cloud konzoli.";
     } else if (error.status === 429) {
-      userMessage = "Previše zahteva odjednom. Sačekaj malo pa pokušaj ponovo.";
-    } else if (videoFile.size > 25 * 1024 * 1024) {
-      userMessage = "Video je prevelik za direktno slanje (limit je oko 20-25MB).";
+      userMessage = "Limit zahteva je dostignut (Rate Limit). Sačekaj 60 sekundi.";
     }
 
     throw new Error(userMessage);
