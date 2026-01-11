@@ -5,8 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Srb Caption - Brzi titlovi</title>
-    <!-- Placeholder favicon da se spreči 404 eror -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+    <!-- Blokiranje favicon 404 erora -->
+    <link rel="shortcut icon" href="#">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Montserrat:wght@700;900&family=Bebas+Neue&family=Roboto+Condensed:wght@700&family=Oswald:wght@700&display=swap" rel="stylesheet">
@@ -17,6 +19,11 @@
             color: #f8fafc;
             margin: 0;
             padding: 0;
+            overflow: hidden;
+        }
+        #root {
+            height: 100vh;
+            width: 100vw;
         }
         ::-webkit-scrollbar {
             width: 8px;
@@ -57,7 +64,6 @@
             animation: caption-slide-up 0.2s ease-out forwards;
         }
 
-        /* Fix for letters looking like separate objects when stroked */
         .thick-outline {
             paint-order: stroke fill;
         }
@@ -75,7 +81,6 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- Eksplicitno učitavanje glavnog modula -->
     <script type="module" src="index.tsx"></script>
 </body>
 </html>
