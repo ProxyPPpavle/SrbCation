@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { Caption, CaptionStyle } from '../types';
+import { Caption, CaptionStyle } from '../types.ts';
 
 interface VideoPreviewProps {
   videoUrl: string;
@@ -59,7 +59,6 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({ videoUrl, captions, style }
     return result;
   };
 
-  // We need a unique key for each word to trigger animation even if the word is same
   const { text: activeText, key: activeKey } = useMemo(() => {
     const active = captions.find(c => currentTime >= c.start && currentTime <= c.end);
     if (!active) return { text: '', key: '' };

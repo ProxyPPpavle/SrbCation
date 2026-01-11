@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import VideoUploader from './components/VideoUploader';
-import VideoPreview from './components/VideoPreview';
-import CustomizationPanel from './components/CustomizationPanel';
-import CaptionList from './components/CaptionList';
-import { Caption, CaptionStyle, VideoData } from './types';
-import { DEFAULT_STYLE } from './constants';
-import { transcribeVideo } from './services/geminiService';
+import React, { useState, useEffect } from 'react';
+import VideoUploader from './components/VideoUploader.tsx';
+import VideoPreview from './components/VideoPreview.tsx';
+import CustomizationPanel from './components/CustomizationPanel.tsx';
+import CaptionList from './components/CaptionList.tsx';
+import { Caption, CaptionStyle, VideoData } from './types.ts';
+import { DEFAULT_STYLE } from './constants.ts';
+import { transcribeVideo } from './services/geminiService.ts';
 
 const App: React.FC = () => {
   const [video, setVideo] = useState<VideoData | null>(null);
@@ -55,7 +55,7 @@ const App: React.FC = () => {
   const handleExport = async () => {
     if (!video) return;
     setIsExporting(true);
-    alert('Export simulacija: Pustite video do kraja kako biste snimili titlove. U realnoj verziji se koristi Canvas snimanje (uskoro dostupno).');
+    alert('Export funkcija: U ovoj verziji pregledajte video sa titlovima. Canvas Recording je u fazi testiranja.');
     setIsExporting(false);
   };
 
@@ -155,7 +155,7 @@ const App: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
            <span className="hidden sm:inline italic">Cena obrade: ~0.0001$ po videu</span>
-           <span className="font-mono opacity-50">v1.3.0</span>
+           <span className="font-mono opacity-50">v1.3.1</span>
         </div>
       </footer>
     </div>

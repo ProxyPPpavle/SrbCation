@@ -1,11 +1,10 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Caption } from "../types";
+import { Caption } from "../types.ts";
 
 export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  // Convert file to base64
   const base64Data = await new Promise<string>((resolve) => {
     const reader = new FileReader();
     reader.onload = () => resolve((reader.result as string).split(',')[1]);

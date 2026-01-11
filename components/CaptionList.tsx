@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Caption } from '../types';
+import { Caption } from '../types.ts';
 
 interface CaptionListProps {
   captions: Caption[];

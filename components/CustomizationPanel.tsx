@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { CaptionStyle, DisplayMode, TextCasing, AnimationType } from '../types';
-import { FONTS } from '../constants';
+import { CaptionStyle, DisplayMode, TextCasing, AnimationType } from '../types.ts';
+import { FONTS } from '../constants.ts';
 
 interface CustomizationPanelProps {
   style: CaptionStyle;
@@ -12,7 +12,6 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
   return (
     <div className="w-80 h-full bg-slate-900 border-l border-slate-800 overflow-y-auto flex flex-col scrollbar-hide">
       
-      {/* SECTION: WIN FEATURES - DISPLAY & ANIM (AT TOP) */}
       <section className="p-5 border-b border-slate-800 bg-blue-600/5">
         <h3 className="text-[11px] font-black text-orange-500 uppercase tracking-widest mb-4 flex items-center gap-2">
           <i className="fa-solid fa-star"></i> Glavni Prikaz & Animacija
@@ -47,7 +46,6 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
         </div>
       </section>
 
-      {/* SECTION: TEXT */}
       <section className="p-5 border-b border-slate-800">
         <h3 className="text-[11px] font-black text-blue-500 uppercase tracking-widest mb-4 flex items-center gap-2">
           <i className="fa-solid fa-font"></i> Tekst & Pismo
@@ -117,7 +115,6 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
         </div>
       </section>
 
-      {/* SECTION: STROKE */}
       <section className="p-5 border-b border-slate-800 bg-slate-900/40">
         <h3 className="text-[11px] font-black text-purple-500 uppercase tracking-widest mb-4 flex items-center gap-2">
           <i className="fa-solid fa-pen-nib"></i> Okvir (Stroke)
@@ -136,7 +133,6 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
         </div>
       </section>
 
-      {/* SECTION: SHADOW */}
       <section className="p-5 border-b border-slate-800">
         <h3 className="text-[11px] font-black text-pink-500 uppercase tracking-widest mb-4 flex items-center gap-2">
           <i className="fa-solid fa-moon"></i> Senka (Shadow)
@@ -172,7 +168,6 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
         </div>
       </section>
 
-      {/* SECTION: GLOW */}
       <section className="p-5 border-b border-slate-800 bg-slate-900/40">
         <h3 className="text-[11px] font-black text-yellow-500 uppercase tracking-widest mb-4 flex items-center gap-2">
           <i className="fa-solid fa-sun"></i> Sjaj (Glow)
@@ -198,7 +193,6 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
         </div>
       </section>
 
-      {/* SECTION: POSITION */}
       <section className="p-5 border-b border-slate-800">
         <h3 className="text-[11px] font-black text-green-500 uppercase tracking-widest mb-4 flex items-center gap-2">
           <i className="fa-solid fa-up-down-left-right"></i> Pozicija

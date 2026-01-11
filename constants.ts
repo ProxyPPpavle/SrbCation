@@ -1,5 +1,5 @@
 
-import { CaptionStyle } from './types';
+import { CaptionStyle } from './types.ts';
 
 export const DEFAULT_STYLE: CaptionStyle = {
   color: '#ffffff',
