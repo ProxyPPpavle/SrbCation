@@ -1,0 +1,8 @@
+{
+  "name": "Srb Caption",
+  "description": "Profesionalni alat za brzo pravljenje titlova na srpskom jeziku (latinica). Automatska transkripcija pomoću veštačke inteligencije sa potpunom kontrolom stila i animacija.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
