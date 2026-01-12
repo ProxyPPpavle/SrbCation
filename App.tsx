@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import VideoUploader from './components/VideoUploader.tsx';
 import VideoPreview from './components/VideoPreview.tsx';
 import CustomizationPanel from './components/CustomizationPanel.tsx';
@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [style, setStyle] = useState<CaptionStyle>(DEFAULT_STYLE);
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   
   const handleUpload = async (file: File) => {
@@ -50,12 +51,10 @@ const App: React.FC = () => {
       
       newCaptions[index] = { ...newCaptions[index], [field]: sanitizedValue };
 
-      // Chained logic: End -> Next Start
       if (field === 'end' && index < newCaptions.length - 1) {
         newCaptions[index + 1] = { ...newCaptions[index + 1], start: sanitizedValue };
       }
       
-      // Chained logic: Start -> Prev End
       if (field === 'start' && index > 0) {
         newCaptions[index - 1] = { ...newCaptions[index - 1], end: sanitizedValue };
       }
@@ -106,9 +105,124 @@ const App: React.FC = () => {
 
   const handleExport = async () => {
     if (!video) return;
+    
+    // 1. Otvori SmartLink u novom tabu (Adsterra)
+    window.open('https://is.gd/8GvRR9', '_blank');
+
     setIsExporting(true);
-    alert('Export funkcija: Pregledajte video sa titlovima. Snimanje finalnog fajla sa ugrađenim titlovima je planirano u sledećoj verziji.');
-    setIsExporting(false);
+    setExportProgress(0);
+
+    try {
+      // Kreiramo skriveni rendering engine
+      const videoEl = document.createElement('video');
+      videoEl.src = video.url;
+      videoEl.muted = true;
+      videoEl.playsInline = true;
+      
+      await new Promise((resolve) => {
+        videoEl.onloadedmetadata = resolve;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = videoEl.videoWidth;
+      canvas.height = videoEl.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Canvas context error");
+
+      const stream = canvas.captureStream(30);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9',
+        videoBitsPerSecond: 5000000 // 5Mbps za dobar kvalitet
+      });
+
+      const chunks: Blob[] = [];
+      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+      
+      const downloadPromise = new Promise<void>((resolve) => {
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `SrbCaption_${Date.now()}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          resolve();
+        };
+      });
+
+      mediaRecorder.start();
+      videoEl.play();
+
+      const renderFrame = () => {
+        if (videoEl.paused || videoEl.ended) return;
+
+        // Crtanje videa
+        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+        // Pronalaženje aktivnog titla
+        const time = videoEl.currentTime;
+        setExportProgress(Math.round((time / videoEl.duration) * 100));
+
+        const active = captions.find(c => time >= c.start && time <= c.end);
+        if (active) {
+          // Procesuiranje teksta (uprošćeno za export engine)
+          let textToDraw = active.text;
+          if (style.removePunctuation) textToDraw = textToDraw.replace(/[.,?!:;]/g, "");
+          if (style.casing === 'uppercase') textToDraw = textToDraw.toUpperCase();
+          if (style.casing === 'lowercase') textToDraw = textToDraw.toLowerCase();
+
+          // Podešavanje fonta
+          ctx.font = `${style.isBold ? 'bold' : ''} ${style.fontSize * (canvas.height / 720)}px "${style.fontFamily}"`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          // Pozicija
+          let x = canvas.width / 2 + (style.offsetX / 100) * canvas.width;
+          let y = canvas.height * 0.85 + style.offsetY;
+          if (style.position === 'top') y = canvas.height * 0.15 + style.offsetY;
+          if (style.position === 'middle') y = canvas.height * 0.5 + style.offsetY;
+
+          // Shadow / Glow simulacija (uprošćeno za canvas)
+          if (style.shadowOpacity > 0) {
+            ctx.shadowColor = style.shadowColor;
+            ctx.shadowBlur = style.shadowBlur;
+            ctx.shadowOffsetX = style.shadowOffsetX;
+            ctx.shadowOffsetY = style.shadowOffsetY;
+          }
+
+          // Stroke
+          if (style.strokeWidth > 0) {
+            ctx.strokeStyle = style.strokeColor;
+            ctx.lineWidth = style.strokeWidth * (canvas.height / 720) * 2;
+            ctx.strokeText(textToDraw, x, y);
+          }
+
+          // Fill
+          ctx.fillStyle = style.color;
+          ctx.shadowBlur = 0; // Reset blur za text da ne bi bio previše mutan
+          ctx.fillText(textToDraw, x, y);
+        }
+
+        if (time < videoEl.duration) {
+          requestAnimationFrame(renderFrame);
+        } else {
+          mediaRecorder.stop();
+        }
+      };
+
+      renderFrame();
+      await downloadPromise;
+      
+    } catch (err: any) {
+      console.error(err);
+      alert("Greška tokom eksporta. Proverite da li vaš browser podržava MediaRecorder.");
+    } finally {
+      setIsExporting(false);
+      setExportProgress(0);
+    }
   };
 
   useEffect(() => {
@@ -152,16 +266,57 @@ const App: React.FC = () => {
             <button 
               onClick={handleExport}
               disabled={isExporting}
-              className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-6 py-2 rounded-full transition-all flex items-center gap-2 shadow-lg shadow-blue-600/20 active:scale-95"
+              className={`bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-6 py-2 rounded-full transition-all flex items-center gap-2 shadow-lg shadow-blue-600/20 active:scale-95 ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {isExporting ? <i className="fa-solid fa-circle-notch animate-spin"></i> : <i className="fa-solid fa-download"></i>}
-              Eksportuj
+              {isExporting ? (
+                <>
+                  <i className="fa-solid fa-circle-notch animate-spin"></i>
+                  Rendering {exportProgress}%
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-download"></i>
+                  Eksportuj Video
+                </>
+              )}
             </button>
           </div>
         )}
       </header>
 
-      <main className="flex-1 flex overflow-hidden">
+      <main className="flex-1 flex overflow-hidden relative">
+        {/* Export Overlay */}
+        {isExporting && (
+          <div className="absolute inset-0 z-[100] bg-slate-950/90 flex flex-col items-center justify-center p-8 text-center animate-fade">
+            <div className="w-24 h-24 mb-6 relative">
+              <svg className="w-full h-full" viewBox="0 0 100 100">
+                <circle className="text-slate-800 stroke-current" strokeWidth="8" fill="transparent" r="40" cx="50" cy="50" />
+                <circle 
+                  className="text-blue-500 stroke-current transition-all duration-300" 
+                  strokeWidth="8" 
+                  strokeDasharray={2 * Math.PI * 40} 
+                  strokeDashoffset={2 * Math.PI * 40 * (1 - exportProgress / 100)} 
+                  strokeLinecap="round" 
+                  fill="transparent" 
+                  r="40" cx="50" cy="50" 
+                  transform="rotate(-90 50 50)"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center font-black text-xl text-white">
+                {exportProgress}%
+              </div>
+            </div>
+            <h2 className="text-2xl font-black text-white mb-2">PRIPREMAM TVOJ VIDEO...</h2>
+            <p className="text-slate-400 max-w-md">
+              Sada "lepimo" titlove direktno u video fajl. Molimo te da ne zatvaraš tab dok se proces ne završi.
+            </p>
+            <div className="mt-8 flex items-center gap-2 text-[10px] text-blue-400 font-bold uppercase tracking-widest">
+              <i className="fa-solid fa-shield-halved"></i>
+              Verified by Srb Caption Engine
+            </div>
+          </div>
+        )}
+
         {!video || (video && isLoading && captions.length === 0) ? (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-slate-950 to-slate-900">
             {error && (
@@ -206,7 +361,7 @@ const App: React.FC = () => {
           <span className="text-slate-600">Srb Caption - AI Editor</span>
         </div>
         <div className="flex items-center gap-3">
-           <span className="font-mono opacity-50 uppercase tracking-tighter">verzija 1.5.8</span>
+           <span className="font-mono opacity-50 uppercase tracking-tighter">verzija 2.0.0 PRO</span>
         </div>
       </footer>
     </div>
