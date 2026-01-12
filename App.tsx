@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import VideoUploader from './components/VideoUploader.tsx';
 import VideoPreview from './components/VideoPreview.tsx';
 import CustomizationPanel from './components/CustomizationPanel.tsx';
@@ -11,11 +11,20 @@ import { transcribeVideo } from './services/geminiService.ts';
 const App: React.FC = () => {
   const [video, setVideo] = useState<VideoData | null>(null);
   const [captions, setCaptions] = useState<Caption[]>([]);
-  const [style, setStyle] = useState<CaptionStyle>(DEFAULT_STYLE);
+  const [style, setStyle] = useState<CaptionStyle>(prev => {
+    // Pokušaj učitavanja prethodnih podešavanja iz browsera
+    const saved = localStorage.getItem('srb_caption_style');
+    return saved ? JSON.parse(saved) : DEFAULT_STYLE;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Sačuvaj stil kad god se promeni
+  useEffect(() => {
+    localStorage.setItem('srb_caption_style', JSON.stringify(style));
+  }, [style]);
   
   const handleUpload = async (file: File) => {
     setIsLoading(true);
@@ -99,7 +108,6 @@ const App: React.FC = () => {
       setVideo(null);
       setCaptions([]);
       setError(null);
-      setStyle(DEFAULT_STYLE);
     }
   };
 
@@ -113,11 +121,10 @@ const App: React.FC = () => {
     setExportProgress(0);
 
     try {
-      // Kreiramo skriveni rendering engine
       const videoEl = document.createElement('video');
       videoEl.src = video.url;
       videoEl.muted = true;
-      videoEl.playsInline = true;
+      videoEl.crossOrigin = "anonymous";
       
       await new Promise((resolve) => {
         videoEl.onloadedmetadata = resolve;
@@ -132,7 +139,7 @@ const App: React.FC = () => {
       const stream = canvas.captureStream(30);
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'video/webm;codecs=vp9',
-        videoBitsPerSecond: 5000000 // 5Mbps za dobar kvalitet
+        videoBitsPerSecond: 8000000 
       });
 
       const chunks: Blob[] = [];
@@ -154,84 +161,124 @@ const App: React.FC = () => {
       });
 
       mediaRecorder.start();
-      videoEl.play();
 
-      const renderFrame = () => {
-        if (videoEl.paused || videoEl.ended) return;
+      // BRZI RENDER: Ne puštamo video, nego skačemo s frejma na frejm
+      const fps = 30;
+      const step = 1 / fps;
+      let currentTime = 0;
 
-        // Crtanje videa
+      while (currentTime < videoEl.duration) {
+        videoEl.currentTime = currentTime;
+        
+        // Čekamo da browser izrenda frejm na toj poziciji
+        await new Promise((resolve) => {
+          videoEl.onseeked = resolve;
+        });
+
+        // 1. Crtanje videa
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
 
-        // Pronalaženje aktivnog titla
-        const time = videoEl.currentTime;
-        setExportProgress(Math.round((time / videoEl.duration) * 100));
-
-        const active = captions.find(c => time >= c.start && time <= c.end);
+        // 2. Pronalaženje aktivnog titla za trenutno vreme
+        const active = captions.find(c => currentTime >= c.start && currentTime <= c.end);
+        
         if (active) {
-          // Procesuiranje teksta (uprošćeno za export engine)
           let textToDraw = active.text;
+
+          // Isti sistem podele na reči kao u VideoPreview.tsx
+          if (style.displayMode !== 'sentence') {
+            const words = active.text.split(/\s+/).filter(Boolean);
+            if (words.length > 0) {
+              const duration = active.end - active.start;
+              const wordDuration = duration / words.length;
+              const currentWordIndex = Math.floor((currentTime - active.start) / wordDuration);
+              const safeIndex = Math.max(0, Math.min(currentWordIndex, words.length - 1));
+
+              if (style.displayMode === 'word') {
+                textToDraw = words[safeIndex] || '';
+              } else if (style.displayMode === 'two-words') {
+                const startIndex = Math.floor(safeIndex / 2) * 2;
+                textToDraw = words.slice(startIndex, startIndex + 2).join(' ');
+              }
+            }
+          }
+
+          // Procesuiranje stila (pismo, znakovi)
           if (style.removePunctuation) textToDraw = textToDraw.replace(/[.,?!:;]/g, "");
           if (style.casing === 'uppercase') textToDraw = textToDraw.toUpperCase();
-          if (style.casing === 'lowercase') textToDraw = textToDraw.toLowerCase();
+          else if (style.casing === 'lowercase') textToDraw = textToDraw.toLowerCase();
+          else if (style.casing === 'titlecase') {
+            textToDraw = textToDraw.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          }
 
-          // Podešavanje fonta
-          ctx.font = `${style.isBold ? 'bold' : ''} ${style.fontSize * (canvas.height / 720)}px "${style.fontFamily}"`;
+          // Podešavanje Canvas parametara (SKALIRANJE)
+          const scaleFactor = canvas.height / 720; // Bazirano na 720p previewu
+          const finalFontSize = style.fontSize * scaleFactor;
+          
+          ctx.font = `${style.isBold ? '900' : '500'} ${finalFontSize}px "${style.fontFamily}", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
 
           // Pozicija
           let x = canvas.width / 2 + (style.offsetX / 100) * canvas.width;
-          let y = canvas.height * 0.85 + style.offsetY;
-          if (style.position === 'top') y = canvas.height * 0.15 + style.offsetY;
-          if (style.position === 'middle') y = canvas.height * 0.5 + style.offsetY;
+          let y = canvas.height * 0.85 + (style.offsetY * scaleFactor);
+          if (style.position === 'top') y = canvas.height * 0.15 + (style.offsetY * scaleFactor);
+          if (style.position === 'middle') y = canvas.height * 0.5 + (style.offsetY * scaleFactor);
 
-          // Shadow / Glow simulacija (uprošćeno za canvas)
+          // SENKE (Stacking za jači efekat)
           if (style.shadowOpacity > 0) {
             ctx.shadowColor = style.shadowColor;
             ctx.shadowBlur = style.shadowBlur;
             ctx.shadowOffsetX = style.shadowOffsetX;
             ctx.shadowOffsetY = style.shadowOffsetY;
+            // Prvi prolaz senke
+            ctx.fillText(textToDraw, x, y);
+            // Drugi prolaz za dodatni punch (kao u CSS-u)
+            ctx.shadowBlur = style.shadowBlur * 0.2;
+            ctx.shadowOffsetX = style.shadowOffsetX * 0.5;
+            ctx.shadowOffsetY = style.shadowOffsetY * 0.5;
+            ctx.fillText(textToDraw, x, y);
           }
 
-          // Stroke
+          // GLOW
+          if (style.glowIntensity > 0) {
+            ctx.shadowColor = style.glowColor;
+            ctx.shadowBlur = style.glowIntensity;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.fillText(textToDraw, x, y);
+          }
+
+          // STROKE
           if (style.strokeWidth > 0) {
+            ctx.shadowBlur = 0; // Reset da stroke ne bi bio "sjajan"
             ctx.strokeStyle = style.strokeColor;
-            ctx.lineWidth = style.strokeWidth * (canvas.height / 720) * 2;
+            ctx.lineWidth = style.strokeWidth * scaleFactor * 2;
+            ctx.lineJoin = 'round';
             ctx.strokeText(textToDraw, x, y);
           }
 
-          // Fill
+          // FINALNI FILL (Tekst na vrhu)
+          ctx.shadowBlur = 0;
           ctx.fillStyle = style.color;
-          ctx.shadowBlur = 0; // Reset blur za text da ne bi bio previše mutan
           ctx.fillText(textToDraw, x, y);
         }
 
-        if (time < videoEl.duration) {
-          requestAnimationFrame(renderFrame);
-        } else {
-          mediaRecorder.stop();
-        }
-      };
+        currentTime += step;
+        setExportProgress(Math.round((currentTime / videoEl.duration) * 100));
+      }
 
-      renderFrame();
+      mediaRecorder.stop();
       await downloadPromise;
       
     } catch (err: any) {
       console.error(err);
-      alert("Greška tokom eksporta. Proverite da li vaš browser podržava MediaRecorder.");
+      alert("Greška: Browser je odbio rendering. Probaj ponovo ili koristi Chrome.");
     } finally {
       setIsExporting(false);
       setExportProgress(0);
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (video?.url) {
-        URL.revokeObjectURL(video.url);
-      }
-    };
-  }, []);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-950">
@@ -306,13 +353,13 @@ const App: React.FC = () => {
                 {exportProgress}%
               </div>
             </div>
-            <h2 className="text-2xl font-black text-white mb-2">PRIPREMAM TVOJ VIDEO...</h2>
+            <h2 className="text-2xl font-black text-white mb-2">UBRZANI RENDERING...</h2>
             <p className="text-slate-400 max-w-md">
-              Sada "lepimo" titlove direktno u video fajl. Molimo te da ne zatvaraš tab dok se proces ne završi.
+              Sada "lepimo" titlove direktno u video frejm po frejm. Molimo te da ne zatvaraš tab dok se proces ne završi.
             </p>
             <div className="mt-8 flex items-center gap-2 text-[10px] text-blue-400 font-bold uppercase tracking-widest">
-              <i className="fa-solid fa-shield-halved"></i>
-              Verified by Srb Caption Engine
+              <i className="fa-solid fa-bolt"></i>
+              Turbo Export v2.1
             </div>
           </div>
         )}
@@ -361,7 +408,7 @@ const App: React.FC = () => {
           <span className="text-slate-600">Srb Caption - AI Editor</span>
         </div>
         <div className="flex items-center gap-3">
-           <span className="font-mono opacity-50 uppercase tracking-tighter">verzija 2.0.0 PRO</span>
+           <span className="font-mono opacity-50 uppercase tracking-tighter">verzija 2.1.0 PRO</span>
         </div>
       </footer>
     </div>
