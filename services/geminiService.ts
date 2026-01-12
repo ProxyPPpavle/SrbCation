@@ -3,21 +3,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Caption } from "../types.ts";
 
 export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
-  // Sigurniji način pristupa environment varijabli u browseru
-  let apiKey = "";
-  
-  try {
-    // @ts-ignore
-    apiKey = process.env.API_KEY;
-  } catch (e) {
-    console.error("Greška pri čitanju process.env:", e);
-  }
+  // Direktan pristup ključu bez dodatnih provera koje mogu blokirati execution u nekim okruženjima
+  const apiKey = process.env.API_KEY;
 
-  // Debug poruka u konzoli (vidljiva samo tebi u F12)
-  console.log("Provera API ključa...", apiKey ? "Ključ je detektovan." : "Ključ NIJE detektovan.");
-
-  if (!apiKey || apiKey === "undefined") {
-    throw new Error("API ključ nije detektovan. OBAVEZNO uradi 'Redeploy' na Vercelu nakon dodavanja Environment varijable!");
+  if (!apiKey) {
+    throw new Error("Greška: API_KEY nije definisan u okruženju. Proveri Vercel Environment Variables i uradi Redeploy.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -26,18 +16,22 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      resolve(result.split(',')[1]);
+      if (typeof result === 'string') {
+        resolve(result.split(',')[1]);
+      } else {
+        reject(new Error("Neuspešno čitanje fajla."));
+      }
     };
     reader.onerror = (e) => reject(e);
     reader.readAsDataURL(videoFile);
   });
 
   const prompt = `
-    Pažljivo analiziraj ovaj video i uradi kompletnu transkripciju govora na SRPSKOM JEZIKU (koristi LATINICU).
-    Podeli tekst u veoma kratke segmente (titlove). Svaki segment treba da ima maksimalno 5-7 reči.
-    Za svaki segment odredi precizno vreme početka (start) i kraja (end) u sekundama.
-    Vrati rezultat ISKLJUČIVO kao JSON niz objekata sa poljima "text", "start" i "end".
-    Koristi isključivo srpska slova: č, ć, š, ž, đ.
+    Analiziraj ovaj video i uradi transkripciju govora na SRPSKOM jeziku (LATINICA).
+    Rezultat mora biti niz JSON objekata. 
+    Podeli rečenice na male delove (titlove) od po 3-6 reči.
+    Obavezno koristi srpska slova (č, ć, š, ž, đ).
+    Format: [{"text": "Primer teksta", "start": 0.0, "end": 2.0}]
   `;
 
   try {
@@ -73,25 +67,16 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
       }
     });
 
-    if (!response.text) {
-      throw new Error("Model nije vratio tekst. Pokušaj ponovo.");
-    }
+    const text = response.text;
+    if (!text) throw new Error("AI nije vratio odgovor.");
 
-    const rawResult = JSON.parse(response.text.trim());
+    const rawResult = JSON.parse(text.trim());
     return rawResult.map((c: any, index: number) => ({
       ...c,
       id: `caption-${index}-${Date.now()}`
     }));
   } catch (error: any) {
-    console.error("Detaljna AI greška:", error);
-    
-    let userMessage = "Greška u AI obradi.";
-    if (error.message?.includes("API key")) {
-      userMessage = "API ključ nije validan. Proveri da li je 'Generative Language API' omogućen u Google Cloud konzoli.";
-    } else if (error.status === 429) {
-      userMessage = "Limit zahteva je dostignut (Rate Limit). Sačekaj 60 sekundi.";
-    }
-
-    throw new Error(userMessage);
+    console.error("AI Error:", error);
+    throw new Error(error.message || "Problem sa transkripcijom.");
   }
 }

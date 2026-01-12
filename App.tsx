@@ -20,14 +20,17 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
+      // Prvo kreiramo URL i postavljamo video da bi se prikazao odmah
       const url = URL.createObjectURL(file);
       setVideo({ file, url });
       
+      // Zatim pokrećemo transkripciju
       const transcribedCaptions = await transcribeVideo(file);
       setCaptions(transcribedCaptions);
     } catch (err: any) {
-      setError(err.message || 'Došlo je do greške prilikom obrade videa.');
-      setVideo(null);
+      setError(err.message || 'Greška prilikom obrade videa.');
+      // Ne brišemo video odmah da bi korisnik video šta je ubacio, 
+      // ali transkripcija je stala.
     } finally {
       setIsLoading(false);
     }
@@ -55,107 +58,83 @@ const App: React.FC = () => {
   const handleExport = async () => {
     if (!video) return;
     setIsExporting(true);
-    alert('Export funkcija: U ovoj verziji pregledajte video sa titlovima. Canvas Recording je u fazi testiranja.');
+    alert('Export: Pregledajte video sa titlovima. Snimanje finalnog fajla je u test fazi.');
     setIsExporting(false);
   };
 
+  // Čistimo URL samo kada se video potpuno promeni ili aplikacija unmount-uje
   useEffect(() => {
     return () => {
-      if (video) URL.revokeObjectURL(video.url);
+      if (video?.url) {
+        URL.revokeObjectURL(video.url);
+      }
     };
-  }, [video]);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-950">
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-3 bg-slate-900 border-b border-slate-800 z-10 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
             <i className="fa-solid fa-closed-captioning text-white text-sm"></i>
           </div>
-          <div>
-            <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 leading-tight">
-              Srb Caption
-            </h1>
-          </div>
+          <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+            Srb Caption
+          </h1>
         </div>
 
         {video && (
           <div className="flex items-center gap-3">
-            <button 
-              onClick={handleReset}
-              className="text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5 transition-colors"
-            >
+            <button onClick={handleReset} className="text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5">
               Restart
             </button>
             <button 
               onClick={handleExport}
               disabled={isExporting}
-              className={`${isExporting ? 'bg-slate-700' : 'bg-blue-600 hover:bg-blue-500'} text-white text-xs font-bold px-5 py-2 rounded-full transition-all flex items-center gap-2 shadow-lg shadow-blue-600/20`}
+              className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-5 py-2 rounded-full transition-all flex items-center gap-2"
             >
-              {isExporting ? (
-                <><i className="fa-solid fa-circle-notch animate-spin"></i> Snimam...</>
-              ) : (
-                <><i className="fa-solid fa-download"></i> Eksportuj</>
-              )}
+              {isExporting ? <i className="fa-solid fa-circle-notch animate-spin"></i> : <i className="fa-solid fa-download"></i>}
+              Eksportuj
             </button>
           </div>
         )}
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 flex overflow-hidden">
         {!video ? (
           <div className="w-full h-full flex flex-col items-center justify-center">
             {error && (
-              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3">
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3 max-w-lg">
                 <i className="fa-solid fa-circle-exclamation"></i>
-                {error}
+                <p>{error}</p>
               </div>
             )}
             <VideoUploader onUpload={handleUpload} isLoading={isLoading} />
           </div>
         ) : (
           <div className="flex w-full h-full">
-            {/* Editor Sidebar */}
             <div className="w-72 shrink-0 border-r border-slate-800 flex flex-col">
-               <CaptionList 
-                captions={captions} 
-                onUpdate={handleCaptionUpdate} 
-                onDelete={handleCaptionDelete} 
-               />
+               <CaptionList captions={captions} onUpdate={handleCaptionUpdate} onDelete={handleCaptionDelete} />
             </div>
-
-            {/* Preview Section */}
             <div className="flex-1 flex flex-col bg-black/20 p-4 min-w-0">
-               <VideoPreview 
-                  videoUrl={video.url} 
-                  captions={captions} 
-                  style={style} 
-               />
+               <VideoPreview videoUrl={video.url} captions={captions} style={style} />
+               {error && (
+                 <div className="mt-2 p-2 bg-red-500/20 text-red-400 text-[10px] text-center rounded border border-red-500/30">
+                   {error}
+                 </div>
+               )}
             </div>
-
-            {/* Customization Sidebar */}
             <CustomizationPanel style={style} onChange={handleStyleChange} />
           </div>
         )}
       </main>
 
-      {/* Footer / Status Bar */}
       <footer className="px-4 py-1.5 bg-slate-900 border-t border-slate-800 text-[10px] text-slate-500 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> AI Status: Online</span>
-          {video && (
-            <div className="flex items-center gap-2 ml-2 border-l border-slate-800 pl-4">
-              <span className="flex items-center gap-1.5">
-                <kbd className="bg-slate-800 px-1 rounded border border-slate-700 text-slate-300">SPACE</kbd> Play/Pause
-              </span>
-            </div>
-          )}
         </div>
         <div className="flex items-center gap-3">
-           <span className="hidden sm:inline italic">Cena obrade: ~0.0001$ po videu</span>
-           <span className="font-mono opacity-50">v1.3.1</span>
+           <span className="font-mono opacity-50">v1.3.2</span>
         </div>
       </footer>
     </div>
