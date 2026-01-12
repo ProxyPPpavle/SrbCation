@@ -16,7 +16,22 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({ videoUrl, captions, style }
     const video = videoRef.current;
     if (!video) return;
 
-    const handleTimeUpdate = () => {
+    let requestRef: number;
+    const updateTime = () => {
+      // Koristimo requestAnimationFrame za maksimalnu preciznost u realnom vremenu
+      setCurrentTime(video.currentTime);
+      requestRef = requestAnimationFrame(updateTime);
+    };
+
+    const handlePlay = () => {
+      requestRef = requestAnimationFrame(updateTime);
+    };
+
+    const handlePause = () => {
+      cancelAnimationFrame(requestRef);
+    };
+
+    const handleSeeked = () => {
       setCurrentTime(video.currentTime);
     };
 
@@ -31,22 +46,25 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({ videoUrl, captions, style }
       }
     };
 
-    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('seeked', handleSeeked);
     window.addEventListener('keydown', handleKeyDown);
     
     return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('seeked', handleSeeked);
       window.removeEventListener('keydown', handleKeyDown);
+      cancelAnimationFrame(requestRef);
     };
   }, []);
 
   const processText = (text: string) => {
     let result = text;
-    
     if (style.removePunctuation) {
       result = result.replace(/[.,?!:;]/g, "");
     }
-
     switch (style.casing) {
       case 'uppercase': result = result.toUpperCase(); break;
       case 'lowercase': result = result.toLowerCase(); break;
@@ -55,11 +73,11 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({ videoUrl, captions, style }
         break;
       default: break;
     }
-
     return result;
   };
 
   const { text: activeText, key: activeKey } = useMemo(() => {
+    // Provera da li postoji titl u trenutnom vremenu
     const active = captions.find(c => currentTime >= c.start && currentTime <= c.end);
     if (!active) return { text: '', key: '' };
 
@@ -67,11 +85,13 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({ videoUrl, captions, style }
       return { text: processText(active.text), key: active.id };
     }
 
-    const words = active.text.split(' ');
+    const words = active.text.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return { text: '', key: '' };
+
     const duration = active.end - active.start;
     const wordDuration = duration / words.length;
     const currentWordIndex = Math.floor((currentTime - active.start) / wordDuration);
-    const safeIndex = Math.min(currentWordIndex, words.length - 1);
+    const safeIndex = Math.max(0, Math.min(currentWordIndex, words.length - 1));
 
     if (style.displayMode === 'word') {
       const word = words[safeIndex] || '';
@@ -134,17 +154,27 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({ videoUrl, captions, style }
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
 
-  const shadowStr = `${style.shadowOffsetX}px ${style.shadowOffsetY}px ${style.shadowBlur}px ${hexToRgba(style.shadowColor, style.shadowOpacity)}`;
-  const glowStr = style.glowIntensity > 0 ? `0 0 ${style.glowIntensity}px ${hexToRgba(style.glowColor, style.glowOpacity)}` : '';
+  // Stack shadows for more punch and visibility
+  const shadowColorRgba = hexToRgba(style.shadowColor, style.shadowOpacity);
+  const shadowStr = style.shadowOpacity > 0 ? 
+    `${style.shadowOffsetX}px ${style.shadowOffsetY}px ${style.shadowBlur}px ${shadowColorRgba}, 
+     ${style.shadowOffsetX * 0.5}px ${style.shadowOffsetY * 0.5}px ${style.shadowBlur * 0.2}px ${shadowColorRgba}` 
+    : '';
+
+  const glowColorRgba = hexToRgba(style.glowColor, style.glowOpacity);
+  const glowStr = style.glowIntensity > 0 ? 
+    `0 0 ${style.glowIntensity}px ${glowColorRgba}, 0 0 ${style.glowIntensity * 1.5}px ${glowColorRgba}` 
+    : '';
+
   const textShadowValue = [shadowStr, glowStr].filter(Boolean).join(', ');
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center bg-black/40 overflow-hidden">
-      <div className="relative max-h-full max-w-full flex items-center justify-center">
+      <div className="relative max-h-full max-w-full flex items-center justify-center group/video">
         <video 
           ref={videoRef}
           src={videoUrl}
-          className="max-h-full w-auto object-contain"
+          className="max-h-full w-auto object-contain shadow-2xl"
           controls
           playsInline
         />

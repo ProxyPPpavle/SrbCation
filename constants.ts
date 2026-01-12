@@ -26,6 +26,7 @@ export const DEFAULT_STYLE: CaptionStyle = {
   removePunctuation: true,
   offsetX: 0,
   offsetY: 0,
+  timingOffset: 0, // Podrazumevano nema pomeranja
 };
 
 export const COLOR_PRESETS = [
@@ -33,5 +34,5 @@ export const COLOR_PRESETS = [
 ];
 
 export const FONTS = [
-  'Montserrat', 'Inter', 'Bebas Neue', 'Roboto Condensed', 'Oswald', 'Impact', 'Arial'
+  'Montserrat', 'Inter', 'Bebas Neue', 'Roboto Condensed', 'Oswald', 'Impact', 'Arial', 'Comic Sans MS'
 ];

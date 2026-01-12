@@ -3,21 +3,17 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Caption } from "../types.ts";
 
 export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
-  // Funkcija koja pronalazi ključ bez obzira na prefiks (VITE_ ili običan)
   const getApiKey = () => {
     try {
       // @ts-ignore
       const viteKey = import.meta.env?.VITE_API_KEY;
       if (viteKey) return viteKey;
-
       // @ts-ignore
       const processKey = typeof process !== 'undefined' ? (process.env?.VITE_API_KEY || process.env?.API_KEY) : null;
       if (processKey) return processKey;
-
       // @ts-ignore
       const winKey = (window as any).process?.env?.VITE_API_KEY || (window as any).process?.env?.API_KEY || (window as any).VITE_API_KEY || (window as any).API_KEY;
       if (winKey) return winKey;
-
       return null;
     } catch (e) {
       return null;
@@ -27,11 +23,9 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
   const apiKey = getApiKey();
 
   if (!apiKey) {
-    console.error("Srb Caption: API ključ nije pronađen. Proveri Vercel Settings.");
-    throw new Error("Greška: API_KEY nije pronađen. Molimo podesite VITE_API_KEY u Vercel Environment Variables i uradite Redeploy.");
+    throw new Error("Greška: API_KEY nije pronađen. Molimo podesite VITE_API_KEY.");
   }
 
-  // Inicijalizacija sa pronađenim ključem
   const ai = new GoogleGenAI({ apiKey });
   
   const base64Data = await new Promise<string>((resolve, reject) => {
@@ -49,11 +43,19 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
   });
 
   const prompt = `
-    Analiziraj ovaj video i uradi transkripciju govora na SRPSKOM jeziku (LATINICA).
-    Rezultat mora biti niz JSON objekata. 
-    Podeli rečenice na male delove (titlove) od po 2-5 reči za dinamičan prikaz.
-    Obavezno koristi srpska slova (č, ć, š, ž, đ).
-    Format: [{"text": "Primer teksta", "start": 0.0, "end": 2.0}]
+    ZADATAK: Brutalno precizna transkripcija videa na SRPSKOM jeziku (LATINICA).
+    
+    PRAVILA ZA SINHRONIZACIJU:
+    1. TAČNOST U STOTINKU: Start i End moraju biti 100% usklađeni sa zvukom. (npr. 1.12, 2.45).
+    2. GRUPISANJE: Pravi prirodne segmente od 1 do 4 reči. Nemoj razbijati svaku reč posebno, AI treba da oseti ritam govora.
+    3. MILISEKUNDA JE BITNA: Tekst mora da se pojavi TAČNO kad reč krene.
+    4. BEZ PAUZA: Ako govornik nastavlja bez pauze, End trenutnog titla mora biti identičan kao Start sledećeg.
+    
+    JEZIK:
+    - Koristi č, ć, š, ž, đ.
+    - Isključivo JSON niz.
+    
+    FORMAT: [{"text": "Primer rečenice", "start": 0.15, "end": 1.45}]
   `;
 
   try {
@@ -99,9 +101,6 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
     }));
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    if (error.message?.includes("API key not valid")) {
-      throw new Error("API ključ nije validan. Proveri ga u Google AI Studio.");
-    }
     throw new Error(error.message || "Problem sa transkripcijom.");
   }
 }

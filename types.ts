@@ -38,6 +38,8 @@ export interface CaptionStyle {
   removePunctuation: boolean;
   offsetX: number;
   offsetY: number;
+  // Timing sync
+  timingOffset: number; // in seconds (positive = delay text, negative = advance text)
 }
 
 export interface VideoData {

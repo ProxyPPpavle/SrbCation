@@ -14,7 +14,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
       
       <section className="p-5 border-b border-slate-800 bg-blue-600/5">
         <h3 className="text-[11px] font-black text-orange-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-          <i className="fa-solid fa-star"></i> Glavni Prikaz & Animacija
+          <i className="fa-solid fa-star"></i> Mod & Animacija
         </h3>
         <div className="space-y-4">
           <div className="flex flex-col gap-1">
@@ -62,7 +62,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
           <div className="flex gap-2">
             <button
               onClick={() => onChange({ isBold: !style.isBold })}
-              className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-all ${style.isBold ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
+              className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-all ${style.isBold ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
             >
               B
             </button>
@@ -93,24 +93,15 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
 
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
-              <span>Boja Teksta</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <input 
-                type="color" 
-                value={style.color} 
-                onChange={(e) => onChange({ color: e.target.value })}
-                className="w-full h-8 bg-slate-800 border border-slate-700 rounded cursor-pointer p-0"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
-              <span>Veličina</span>
+              <span>Veličina Teksta</span>
               <span className="text-blue-400">{style.fontSize}</span>
             </div>
             <input type="range" min="16" max="160" value={style.fontSize} onChange={(e) => onChange({ fontSize: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-blue-500" />
+          </div>
+
+          <div className="flex items-center gap-3">
+             <input type="color" value={style.color} onChange={(e) => onChange({ color: e.target.value })} className="w-10 h-10 rounded-lg border border-slate-700 bg-transparent cursor-pointer overflow-hidden p-0" />
+             <span className="text-[10px] text-slate-500 uppercase font-bold">Boja Teksta</span>
           </div>
         </div>
       </section>
@@ -121,7 +112,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
         </h3>
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-             <input type="color" value={style.strokeColor} onChange={(e) => onChange({ strokeColor: e.target.value })} className="w-10 h-10 rounded border border-slate-700 bg-transparent cursor-pointer" />
+             <input type="color" value={style.strokeColor} onChange={(e) => onChange({ strokeColor: e.target.value })} className="w-10 h-10 rounded-lg border border-slate-700 bg-transparent cursor-pointer p-0" />
              <div className="flex-1">
                 <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold mb-1">
                    <span>Debljina</span>
@@ -133,67 +124,67 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
         </div>
       </section>
 
-      <section className="p-5 border-b border-slate-800">
+      <section className="p-5 border-b border-slate-800 bg-pink-500/5">
         <h3 className="text-[11px] font-black text-pink-500 uppercase tracking-widest mb-4 flex items-center gap-2">
           <i className="fa-solid fa-moon"></i> Senka (Shadow)
         </h3>
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-             <input type="color" value={style.shadowColor} onChange={(e) => onChange({ shadowColor: e.target.value })} className="w-10 h-10 rounded border border-slate-700 bg-transparent cursor-pointer" />
+             <input type="color" value={style.shadowColor} onChange={(e) => onChange({ shadowColor: e.target.value })} className="w-10 h-10 rounded-lg border border-slate-700 bg-transparent cursor-pointer p-0" />
              <div className="flex-1 flex flex-col gap-1">
                 <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
-                   <span>Opacity</span>
-                   <span className="text-blue-400">{Math.round(style.shadowOpacity * 100)}%</span>
+                   <span>Prozirnost</span>
+                   <span className="text-pink-400">{Math.round(style.shadowOpacity * 100)}%</span>
                 </div>
-                <input type="range" min="0" max="1" step="0.05" value={style.shadowOpacity} onChange={(e) => onChange({ shadowOpacity: parseFloat(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-blue-500" />
+                <input type="range" min="0" max="1" step="0.05" value={style.shadowOpacity} onChange={(e) => onChange({ shadowOpacity: parseFloat(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-pink-500" />
              </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] text-slate-600 uppercase font-bold">Offset X</label>
+              <input type="range" min="-30" max="30" value={style.shadowOffsetX} onChange={(e) => onChange({ shadowOffsetX: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-pink-500" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] text-slate-600 uppercase font-bold">Offset Y</label>
+              <input type="range" min="-30" max="30" value={style.shadowOffsetY} onChange={(e) => onChange({ shadowOffsetY: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-pink-500" />
+            </div>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
-              <span>Blur</span>
-              <span className="text-blue-400">{style.shadowBlur}</span>
+              <span>Blur (Zamućenje)</span>
+              <span className="text-pink-400">{style.shadowBlur}</span>
             </div>
-            <input type="range" min="0" max="40" value={style.shadowBlur} onChange={(e) => onChange({ shadowBlur: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-blue-500" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-             <div className="flex flex-col gap-1">
-               <span className="text-[9px] text-slate-500 uppercase font-bold">Offset X</span>
-               <input type="range" min="-30" max="30" value={style.shadowOffsetX} onChange={(e) => onChange({ shadowOffsetX: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-blue-500" />
-             </div>
-             <div className="flex flex-col gap-1">
-               <span className="text-[9px] text-slate-500 uppercase font-bold">Offset Y</span>
-               <input type="range" min="-30" max="30" value={style.shadowOffsetY} onChange={(e) => onChange({ shadowOffsetY: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-blue-500" />
-             </div>
+            <input type="range" min="0" max="80" value={style.shadowBlur} onChange={(e) => onChange({ shadowBlur: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-pink-500" />
           </div>
         </div>
       </section>
 
-      <section className="p-5 border-b border-slate-800 bg-slate-900/40">
+      <section className="p-5 border-b border-slate-800 bg-yellow-500/5">
         <h3 className="text-[11px] font-black text-yellow-500 uppercase tracking-widest mb-4 flex items-center gap-2">
           <i className="fa-solid fa-sun"></i> Sjaj (Glow)
         </h3>
         <div className="space-y-4">
            <div className="flex items-center gap-3">
-             <input type="color" value={style.glowColor} onChange={(e) => onChange({ glowColor: e.target.value })} className="w-10 h-10 rounded border border-slate-700 bg-transparent cursor-pointer" />
+             <input type="color" value={style.glowColor} onChange={(e) => onChange({ glowColor: e.target.value })} className="w-10 h-10 rounded-lg border border-slate-700 bg-transparent cursor-pointer p-0" />
              <div className="flex-1 flex flex-col gap-1">
                 <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
-                   <span>Veličina</span>
-                   <span className="text-blue-400">{style.glowIntensity}</span>
+                   <span>Intenzitet</span>
+                   <span className="text-yellow-400">{style.glowIntensity}</span>
                 </div>
-                <input type="range" min="0" max="60" step="1" value={style.glowIntensity} onChange={(e) => onChange({ glowIntensity: parseFloat(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-blue-500" />
+                <input type="range" min="0" max="80" step="1" value={style.glowIntensity} onChange={(e) => onChange({ glowIntensity: parseFloat(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-yellow-500" />
              </div>
           </div>
           <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
-              <span>Opacity Sjaja</span>
-              <span className="text-blue-400">{Math.round(style.glowOpacity * 100)}%</span>
-            </div>
-            <input type="range" min="0" max="1" step="0.05" value={style.glowOpacity} onChange={(e) => onChange({ glowOpacity: parseFloat(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-blue-500" />
+             <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
+                <span>Jačina (Opacity)</span>
+                <span className="text-yellow-400">{Math.round(style.glowOpacity * 100)}%</span>
+             </div>
+             <input type="range" min="0" max="1" step="0.05" value={style.glowOpacity} onChange={(e) => onChange({ glowOpacity: parseFloat(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-yellow-500" />
           </div>
         </div>
       </section>
 
-      <section className="p-5 border-b border-slate-800">
+      <section className="p-5 border-b border-slate-800 bg-green-500/5">
         <h3 className="text-[11px] font-black text-green-500 uppercase tracking-widest mb-4 flex items-center gap-2">
           <i className="fa-solid fa-up-down-left-right"></i> Pozicija
         </h3>
@@ -203,7 +194,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
               <button
                 key={pos}
                 onClick={() => onChange({ position: pos })}
-                className={`py-1.5 rounded border text-[10px] font-bold transition-all ${style.position === pos ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}
+                className={`py-1.5 rounded border text-[10px] font-bold transition-all ${style.position === pos ? 'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-500/10' : 'bg-slate-800 border-slate-700 text-slate-500'}`}
               >
                 {pos === 'top' ? 'Gore' : pos === 'middle' ? 'Sredina' : 'Dole'}
               </button>
@@ -211,17 +202,17 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({ style, onChange
           </div>
           <div className="flex flex-col gap-1">
              <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
-                <span>Offset Y</span>
-                <span className="text-blue-400">{style.offsetY}px</span>
+                <span>Pomeranje Y</span>
+                <span className="text-green-400">{style.offsetY}px</span>
              </div>
-             <input type="range" min="-400" max="400" value={style.offsetY} onChange={(e) => onChange({ offsetY: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-blue-500" />
+             <input type="range" min="-400" max="400" value={style.offsetY} onChange={(e) => onChange({ offsetY: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-green-500" />
           </div>
           <div className="flex flex-col gap-1">
              <div className="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
-                <span>Offset X</span>
-                <span className="text-blue-400">{style.offsetX}%</span>
+                <span>Pomeranje X</span>
+                <span className="text-green-400">{style.offsetX}%</span>
              </div>
-             <input type="range" min="-50" max="50" value={style.offsetX} onChange={(e) => onChange({ offsetX: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-blue-500" />
+             <input type="range" min="-50" max="50" value={style.offsetX} onChange={(e) => onChange({ offsetX: parseInt(e.target.value) })} className="w-full h-1 bg-slate-700 rounded-lg accent-green-500" />
           </div>
         </div>
       </section>
