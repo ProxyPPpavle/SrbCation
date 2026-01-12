@@ -3,23 +3,78 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Caption } from "../types.ts";
 
 export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
-  // --- DEBUG SEKCIJA ---
-  // Pokušavamo da nađemo 'process.env' na svim mogućim mestima u browseru
-  // @ts-ignore
-  const globalEnv = (typeof process !== 'undefined' && process.env) ? process.env : (window as any).process?.env;
-  const apiKey = globalEnv?.API_KEY;
+  // --- AGRESIVNI DEBUG I PRETRAGA ---
+  // Pokušavamo da nađemo ključ na svim mestima gde bi ga build tool ili platforma mogli ostaviti
+  const searchEnv = () => {
+    try {
+      // 1. Standardni process.env
+      // @ts-ignore
+      if (typeof process !== 'undefined' && process && process.env && process.env.API_KEY) return process.env.API_KEY;
+      
+      // 2. Vite / moderni bundleri (import.meta.env)
+      // @ts-ignore
+      if (typeof import.meta !== 'undefined' && import.meta && import.meta.env && import.meta.env.API_KEY) return import.meta.env.API_KEY;
+      
+      // 3. Globalni window objekti (često korišćeno za runtime config)
+      const win = window as any;
+      if (win.process?.env?.API_KEY) return win.process.env.API_KEY;
+      if (win._env_?.API_KEY) return win._env_.API_KEY;
+      if (win.ENV?.API_KEY) return win.ENV.API_KEY;
+      if (win.API_KEY) return win.API_KEY;
+      
+      return null;
+    } catch (e) {
+      return null;
+    }
+  };
 
-  console.group("Srb Caption - API Debug");
-  console.log("Svi detektovani parametri:", globalEnv);
-  console.log("API_KEY vrednost:", apiKey ? `PRISUTAN (dužina: ${apiKey.length})` : "NIJE PRISUTAN (undefined)");
+  const apiKey = searchEnv();
+
+  // ISPIS U KONZOLU KAO ŠTO JE KORISNIK TRAŽIO
+  console.group("🚀 Srb Caption - DETALJNA DIJAGNOSTIKA");
+  console.log("KORISNIČKI ZAHTEV: Štampanje svih dostupnih varijabli...");
+  
+  // Bezbedno štampanje process.env ako postoji
+  try {
+    // @ts-ignore
+    console.log("Status 'process':", typeof process !== 'undefined' ? "Postoji" : "NE POSTOJI");
+    // @ts-ignore
+    if (typeof process !== 'undefined') console.log("Sadržaj process.env:", process.env);
+  } catch(e) {
+    console.log("Greška pri čitanju process.env:", e);
+  }
+
+  // Štampanje window.process ako postoji
+  try {
+    console.log("Window Process Env:", (window as any).process?.env);
+  } catch(e) {}
+
+  // Provera Vite/ESM okruženja
+  try {
+    // @ts-ignore
+    console.log("Status 'import.meta.env':", typeof import.meta !== 'undefined' && import.meta.env ? "Postoji" : "NE POSTOJI");
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) console.log("Sadržaj import.meta.env:", import.meta.env);
+  } catch(e) {}
+
+  console.log("FINALNI REZULTAT PRETRAGE ZA 'API_KEY':", apiKey ? "PRONAĐEN ✅" : "NIJE PRONAĐEN ❌");
+  
   if (apiKey) {
-    console.log("Početak ključa:", apiKey.substring(0, 5) + "...");
+    console.log("Prva 4 karaktera ključa:", apiKey.substring(0, 4) + "****");
+    console.log("PUNA VREDNOST KLJUČA (samo za tebe):", apiKey);
+  } else {
+    console.warn("UPOZORENJE: Vercel ne prosleđuje tvoje Environment Varijable u browser!");
+    console.log("SAVET: Proveri u Vercelu 'Settings -> Environment Variables'.");
+    console.log("Ako 'API_KEY' ne radi, probaj da dodaš novu varijablu 'VITE_API_KEY' sa istim ključem.");
   }
   console.groupEnd();
-  // ---------------------
+  // ---------------------------------
 
   if (!apiKey) {
-    throw new Error("Greška: API_KEY nije detektovan. Proveri Vercel Settings -> Environment Variables. Mora biti 'API_KEY' (sve velikim slovima). Nakon čuvanja, OBAVEZNO uradi novi Redeploy.");
+    throw new Error(`Greška: API_KEY nije pronađen u browseru. 
+    Vercel panel kaže da je tu, ali kôd ga ne vidi. 
+    REŠENJE: Probaj da u Vercelu dodaš varijablu pod imenom 'VITE_API_KEY' (pored ove obične). 
+    Nakon toga obavezno uradi novi Redeploy.`);
   }
 
   const ai = new GoogleGenAI({ apiKey });
