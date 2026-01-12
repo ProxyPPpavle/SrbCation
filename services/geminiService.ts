@@ -3,11 +3,23 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Caption } from "../types.ts";
 
 export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
-  // Direktan pristup ključu bez dodatnih provera koje mogu blokirati execution u nekim okruženjima
-  const apiKey = process.env.API_KEY;
+  // --- DEBUG SEKCIJA ---
+  // Pokušavamo da nađemo 'process.env' na svim mogućim mestima u browseru
+  // @ts-ignore
+  const globalEnv = (typeof process !== 'undefined' && process.env) ? process.env : (window as any).process?.env;
+  const apiKey = globalEnv?.API_KEY;
+
+  console.group("Srb Caption - API Debug");
+  console.log("Svi detektovani parametri:", globalEnv);
+  console.log("API_KEY vrednost:", apiKey ? `PRISUTAN (dužina: ${apiKey.length})` : "NIJE PRISUTAN (undefined)");
+  if (apiKey) {
+    console.log("Početak ključa:", apiKey.substring(0, 5) + "...");
+  }
+  console.groupEnd();
+  // ---------------------
 
   if (!apiKey) {
-    throw new Error("Greška: API_KEY nije definisan u okruženju. Proveri Vercel Environment Variables i uradi Redeploy.");
+    throw new Error("Greška: API_KEY nije detektovan. Proveri Vercel Settings -> Environment Variables. Mora biti 'API_KEY' (sve velikim slovima). Nakon čuvanja, OBAVEZNO uradi novi Redeploy.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
