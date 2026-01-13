@@ -11,9 +11,6 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
       // @ts-ignore
       const processKey = typeof process !== 'undefined' ? (process.env?.VITE_API_KEY || process.env?.API_KEY) : null;
       if (processKey) return processKey;
-      // @ts-ignore
-      const winKey = (window as any).process?.env?.VITE_API_KEY || (window as any).process?.env?.API_KEY || (window as any).VITE_API_KEY || (window as any).API_KEY;
-      if (winKey) return winKey;
       return null;
     } catch (e) {
       return null;
@@ -21,59 +18,34 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
   };
 
   const apiKey = getApiKey();
-
-  if (!apiKey) {
-    throw new Error("Greška: API_KEY nije pronađen. Molimo podesite VITE_API_KEY.");
-  }
+  if (!apiKey) throw new Error("API_KEY nije pronađen.");
 
   const ai = new GoogleGenAI({ apiKey });
   
   const base64Data = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      if (typeof result === 'string') {
-        resolve(result.split(',')[1]);
-      } else {
-        reject(new Error("Neuspešno čitanje fajla."));
-      }
-    };
+    reader.onload = () => resolve((reader.result as string).split(',')[1]);
     reader.onerror = (e) => reject(e);
     reader.readAsDataURL(videoFile);
   });
 
   const prompt = `
-    ZADATAK: Brutalno precizna transkripcija videa na SRPSKOM jeziku (LATINICA).
+    ZADATAK: Brutalna i apsolutna transkripcija svakog izgovorenog sloga na SRPSKOM (LATINICA).
     
-    PRAVILA ZA SINHRONIZACIJU:
-    1. TAČNOST U STOTINKU: Start i End moraju biti 100% usklađeni sa zvukom. (npr. 1.12, 2.45).
-    2. GRUPISANJE: Pravi prirodne segmente od 1 do 4 reči. Nemoj razbijati svaku reč posebno, AI treba da oseti ritam govora.
-    3. MILISEKUNDA JE BITNA: Tekst mora da se pojavi TAČNO kad reč krene.
-    4. BEZ PAUZA: Ako govornik nastavlja bez pauze, End trenutnog titla mora biti identičan kao Start sledećeg.
+    STRIKTNA PRAVILA:
+    1. NE SMEŠ PRESKOČITI NIJEDNU REČ. Ako neko mrmlja ili brzo priča, pokušaj da dešifruješ, nemoj ostavljati prazno.
+    2. TAČNOST U STOTINKU: Start i End moraju pratiti zvuk u milisekundu (npr. 1.05, 1.82).
+    3. RITAM: Grupisanje po 2-4 reči koje čine logičku celinu.
+    4. KONTINUITET: Između dva titla ne sme biti "rupe" u vremenu ako se govor nastavlja.
+    5. JEZIK: Koristi š, đ, č, ć, ž.
     
-    JEZIK:
-    - Koristi č, ć, š, ž, đ.
-    - Isključivo JSON niz.
-    
-    FORMAT: [{"text": "Primer rečenice", "start": 0.15, "end": 1.45}]
+    FORMAT: JSON array objekata [{"text": "...", "start": 0.0, "end": 1.0}]
   `;
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: [
-        {
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                mimeType: videoFile.type,
-                data: base64Data
-              }
-            }
-          ]
-        }
-      ],
+      contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: videoFile.type, data: base64Data } }] }],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -92,15 +64,13 @@ export async function transcribeVideo(videoFile: File): Promise<Caption[]> {
     });
 
     const text = response.text;
-    if (!text) throw new Error("AI nije vratio titlove.");
-
+    if (!text) throw new Error("Prazan odgovor.");
     const rawResult = JSON.parse(text.trim());
     return rawResult.map((c: any, index: number) => ({
       ...c,
-      id: `caption-${index}-${Date.now()}`
+      id: `cap-${index}-${Date.now()}`
     }));
   } catch (error: any) {
-    console.error("Gemini Error:", error);
-    throw new Error(error.message || "Problem sa transkripcijom.");
+    throw new Error(error.message || "Problem sa AI obradom.");
   }
 }
