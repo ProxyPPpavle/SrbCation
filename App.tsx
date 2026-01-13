@@ -5,6 +5,7 @@ import VideoPreview from './components/VideoPreview.tsx';
 import CustomizationPanel from './components/CustomizationPanel.tsx';
 import CaptionList from './components/CaptionList.tsx';
 import AdBanner from './components/AdBanner.tsx';
+import ExportAdBanner from './components/ExportAdBanner.tsx';
 import { Caption, CaptionStyle, VideoData } from './types.ts';
 import { DEFAULT_STYLE } from './constants.ts';
 import { transcribeVideo } from './services/geminiService.ts';
@@ -200,12 +201,16 @@ const App: React.FC = () => {
       <main className="flex-1 flex overflow-hidden relative">
         {isExporting && (
           <div className="absolute inset-0 z-[100] bg-slate-950/98 flex flex-col items-center justify-center text-center animate-fade">
-             <div className="w-32 h-32 mb-8 relative">
-               <svg className="w-full h-full" viewBox="0 0 100 100"><circle className="text-slate-800 stroke-current" strokeWidth="4" fill="transparent" r="45" cx="50" cy="50" /><circle className="text-blue-500 stroke-current" strokeWidth="6" strokeDasharray={283} strokeDashoffset={283 * (1 - exportProgress/100)} fill="transparent" r="45" cx="50" cy="50" transform="rotate(-90 50 50)" /></svg>
-               <div className="absolute inset-0 flex items-center justify-center font-black text-3xl text-white tracking-tighter">{exportProgress}%</div>
+             <div className="flex-1 flex flex-col items-center justify-center pt-20">
+               <div className="w-32 h-32 mb-8 relative">
+                 <svg className="w-full h-full" viewBox="0 0 100 100"><circle className="text-slate-800 stroke-current" strokeWidth="4" fill="transparent" r="45" cx="50" cy="50" /><circle className="text-blue-500 stroke-current" strokeWidth="6" strokeDasharray={283} strokeDashoffset={283 * (1 - exportProgress/100)} fill="transparent" r="45" cx="50" cy="50" transform="rotate(-90 50 50)" /></svg>
+                 <div className="absolute inset-0 flex items-center justify-center font-black text-3xl text-white tracking-tighter">{exportProgress}%</div>
+               </div>
+               <h2 className="text-3xl font-black text-white mb-2 uppercase italic tracking-tighter">Master Quality Render...</h2>
+               <p className="text-slate-400 max-w-sm text-sm font-medium">Lepimo titlove, senke i animacije. Nemoj gasiti tab.</p>
              </div>
-             <h2 className="text-3xl font-black text-white mb-2 uppercase italic tracking-tighter">Master Quality Render...</h2>
-             <p className="text-slate-400 max-w-sm text-sm font-medium">Lepimo titlove, senke i animacije. Nemoj gasiti tab.</p>
+             
+             <ExportAdBanner />
           </div>
         )}
 
@@ -230,7 +235,7 @@ const App: React.FC = () => {
       <footer className="px-4 py-1.5 bg-slate-900 border-t border-slate-800 text-[10px] text-slate-500 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Gemini 2.5 Pro Engine</span>
-          <span className="text-slate-600">Srb Caption v2.6 Passive</span>
+          <span className="text-slate-600">Srb Caption v2.7 Revenue</span>
         </div>
       </footer>
     </div>
